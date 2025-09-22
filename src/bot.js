@@ -72,7 +72,7 @@ client.once('ready', () => {
 async function registerCommands() {
 	const commands = [
 		{
-			name: 'setup',
+			name: 'submit-wallet-setup',
 			description: 'Post the wallet submission message in this channel',
 		},
 	];
@@ -96,7 +96,7 @@ async function registerCommands() {
 client.on('interactionCreate', async (interaction) => {
 	try {
 		if (interaction.isChatInputCommand()) {
-			if (interaction.commandName === 'setup') {
+			if (interaction.commandName === 'submit-wallet-setup') {
 				const submitButton = new ButtonBuilder()
 					.setCustomId('submit_wallet')
 					.setLabel('Submit Wallet')
@@ -110,8 +110,7 @@ client.on('interactionCreate', async (interaction) => {
 				const row = new ActionRowBuilder().addComponents(submitButton, statusButton);
 
 				const embed = new EmbedBuilder()
-					.setDescription(`Submit your wallet for Phase 4: stage 1, mainnet utilities
-STARTING SOON  ( <@&1411717220605886616>)`)
+					.setDescription('Submit your wallet')
 					.setColor(0x2b2d31);
 
 				await interaction.reply({

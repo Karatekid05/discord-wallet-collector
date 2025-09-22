@@ -12,7 +12,7 @@ if (!token || !clientId) {
 
 const commands = [
 	{
-		name: 'setup',
+		name: 'submit-wallet-setup',
 		description: 'Post the wallet submission message in this channel',
 	},
 ];
