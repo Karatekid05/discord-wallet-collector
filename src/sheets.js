@@ -31,7 +31,7 @@ const auth = new google.auth.JWT({
 const sheetsApi = google.sheets({ version: 'v4', auth });
 
 const SHEET_NAME = 'Wallets';
-const HEADER_ROW = ['Discord Username', 'Discord ID', 'EVM Wallet'];
+const HEADER_ROW = ['Discord Username', 'Discord ID', 'EVM Wallet', 'Role'];
 
 export async function ensureSheetSetup() {
 	// Ensure sheet exists and has header row
@@ -52,7 +52,7 @@ export async function ensureSheetSetup() {
 		});
 	}
 	// Write header row if first row is empty
-	const range = `${SHEET_NAME}!A1:C1`;
+	const range = `${SHEET_NAME}!A1:D1`;
 	const current = await sheetsApi.spreadsheets.values.get({ spreadsheetId, range });
 	const firstRow = current.data.values?.[0] ?? [];
 	if (firstRow.length === 0 || HEADER_ROW.some((h, i) => firstRow[i] !== h)) {
@@ -65,10 +65,10 @@ export async function ensureSheetSetup() {
 	}
 }
 
-export async function upsertWallet({ discordId, discordUsername, wallet }) {
+export async function upsertWallet({ discordId, discordUsername, wallet, role }) {
 	await ensureSheetSetup();
 	const spreadsheetId = GOOGLE_SHEETS_SPREADSHEET_ID;
-	const range = `${SHEET_NAME}!A2:C`; // data rows
+	const range = `${SHEET_NAME}!A2:D`; // data rows
 	const resp = await sheetsApi.spreadsheets.values.get({ spreadsheetId, range });
 	const rows = resp.data.values || [];
 
@@ -88,20 +88,20 @@ export async function upsertWallet({ discordId, discordUsername, wallet }) {
 			valueInputOption: 'RAW',
 			insertDataOption: 'INSERT_ROWS',
 			requestBody: {
-				values: [[discordUsername, discordId, wallet]],
+				values: [[discordUsername, discordId, wallet, role ?? '']],
 			},
 		});
 		return { action: 'inserted' };
 	}
 
 	// update existing row
-	const updateRange = `${SHEET_NAME}!A${rowIndex + 2}:C${rowIndex + 2}`;
+	const updateRange = `${SHEET_NAME}!A${rowIndex + 2}:D${rowIndex + 2}`;
 	await sheetsApi.spreadsheets.values.update({
 		spreadsheetId,
 		range: updateRange,
 		valueInputOption: 'RAW',
 		requestBody: {
-			values: [[discordUsername, discordId, wallet]],
+			values: [[discordUsername, discordId, wallet, role ?? '']],
 		},
 	});
 	return { action: 'updated' };
@@ -110,12 +110,12 @@ export async function upsertWallet({ discordId, discordUsername, wallet }) {
 export async function getWallet(discordId) {
 	await ensureSheetSetup();
 	const spreadsheetId = GOOGLE_SHEETS_SPREADSHEET_ID;
-	const range = `${SHEET_NAME}!A2:C`;
+	const range = `${SHEET_NAME}!A2:D`;
 	const resp = await sheetsApi.spreadsheets.values.get({ spreadsheetId, range });
 	const rows = resp.data.values || [];
 	for (const row of rows) {
 		if (row[1] === discordId) {
-			return { discordUsername: row[0], discordId: row[1], wallet: row[2] };
+			return { discordUsername: row[0], discordId: row[1], wallet: row[2], role: row[3] ?? '' };
 		}
 	}
 	return null;
