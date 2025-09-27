@@ -121,4 +121,51 @@ export async function getWallet(discordId) {
 	return null;
 }
 
+export async function listWallets() {
+	await ensureSheetSetup();
+	const spreadsheetId = GOOGLE_SHEETS_SPREADSHEET_ID;
+	const range = `${SHEET_NAME}!A2:D`;
+	const resp = await sheetsApi.spreadsheets.values.get({ spreadsheetId, range });
+	const rows = resp.data.values || [];
+	const items = [];
+	for (const row of rows) {
+		if (!row || row.length === 0) continue;
+		items.push({
+			discordUsername: row[0] ?? '',
+			discordId: row[1] ?? '',
+			wallet: row[2] ?? '',
+			role: row[3] ?? '',
+		});
+	}
+	return items;
+}
+
+export async function updateRole(discordId, role) {
+	await ensureSheetSetup();
+	const spreadsheetId = GOOGLE_SHEETS_SPREADSHEET_ID;
+	const range = `${SHEET_NAME}!A2:D`;
+	const resp = await sheetsApi.spreadsheets.values.get({ spreadsheetId, range });
+	const rows = resp.data.values || [];
+
+	let rowIndex = -1;
+	for (let i = 0; i < rows.length; i++) {
+		if (rows[i][1] === discordId) {
+			rowIndex = i;
+			break;
+		}
+	}
+	if (rowIndex === -1) return false;
+
+	const updateRange = `${SHEET_NAME}!D${rowIndex + 2}:D${rowIndex + 2}`;
+	await sheetsApi.spreadsheets.values.update({
+		spreadsheetId,
+		range: updateRange,
+		valueInputOption: 'RAW',
+		requestBody: {
+			values: [[role ?? '']],
+		},
+	});
+	return true;
+}
+
 

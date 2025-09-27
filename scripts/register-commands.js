@@ -15,6 +15,10 @@ const commands = [
 		name: 'submit-wallet-setup',
 		description: 'Post the wallet submission message in this channel',
 	},
+	{
+		name: 'refresh-wallet-roles',
+		description: 'Refresh stored roles for submitted wallets',
+	},
 ];
 
 const rest = new REST({ version: '10' }).setToken(token);

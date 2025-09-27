@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { Client, GatewayIntentBits, REST, Routes, Partials, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, InteractionType, EmbedBuilder } from 'discord.js';
-import { upsertWallet, getWallet, ensureSheetSetup } from './sheets.js';
+import { upsertWallet, getWallet, ensureSheetSetup, listWallets, updateRole } from './sheets.js';
 
 const token = process.env.DISCORD_TOKEN;
 const clientId = process.env.DISCORD_CLIENT_ID;
@@ -12,11 +12,14 @@ if (!token || !clientId) {
 
 // Role priority (highest to lowest)
 const PRIORITY_ROLES = [
-    { id: '1416902471124652204', label: 'Free Mint pass' },
+    { id: '1353403238241669132', label: 'Boss' },
+    { id: '1353017567345901589', label: "Mongang's friends" },
+    { id: '1399886358096379964', label: 'Alpha' },
+    { id: '1416902471124652204', label: 'Free Mint Pass' },
     { id: '1353403039200972830', label: 'Mafia' },
     { id: '1353402893532659732', label: 'Capo' },
-    { id: '1413980753053745263', label: '(Collab)' },
     { id: '1353402683247165561', label: 'Fast Shooter' },
+    { id: '1385211569872310324', label: 'Mongang Lover' },
 ];
 
 async function getMemberRoleIds(interaction) {
@@ -75,6 +78,10 @@ async function registerCommands() {
 			name: 'submit-wallet-setup',
 			description: 'Post the wallet submission message in this channel',
 		},
+		{
+			name: 'refresh-wallet-roles',
+			description: 'Refresh stored roles for submitted wallets',
+		},
 	];
 	const rest = new REST({ version: '10' }).setToken(token);
 	try {
@@ -118,6 +125,25 @@ client.on('interactionCreate', async (interaction) => {
 					components: [row],
 					allowedMentions: { parse: [] },
 				});
+			}
+			if (interaction.commandName === 'refresh-wallet-roles') {
+				await interaction.deferReply({ ephemeral: true });
+				const items = await listWallets();
+				let updated = 0;
+				for (const item of items) {
+					if (!item.discordId) continue;
+					try {
+						// Build a fake interaction-like object for role fetch using current interaction context
+						const role = await getHighestPriorityRoleLabel({
+							guild: interaction.guild,
+							user: { id: item.discordId },
+							member: await interaction.guild?.members.fetch(item.discordId).catch(() => null) || null,
+						});
+						await updateRole(item.discordId, role);
+						updated++;
+					} catch {}
+				}
+				await interaction.editReply(`Roles refreshed for ${updated} user(s).`);
 			}
 		}
 
