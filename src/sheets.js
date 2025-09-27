@@ -140,6 +140,27 @@ export async function listWallets() {
 	return items;
 }
 
+export async function listWalletsWithRow() {
+	await ensureSheetSetup();
+	const spreadsheetId = GOOGLE_SHEETS_SPREADSHEET_ID;
+	const range = `${SHEET_NAME}!A2:D`;
+	const resp = await sheetsApi.spreadsheets.values.get({ spreadsheetId, range });
+	const rows = resp.data.values || [];
+	const items = [];
+	for (let i = 0; i < rows.length; i++) {
+		const row = rows[i] || [];
+		if (row.length === 0) continue;
+		items.push({
+			rowNumber: i + 2, // actual sheet row number
+			discordUsername: row[0] ?? '',
+			discordId: row[1] ?? '',
+			wallet: row[2] ?? '',
+			role: row[3] ?? '',
+		});
+	}
+	return items;
+}
+
 export async function updateRole(discordId, role) {
 	await ensureSheetSetup();
 	const spreadsheetId = GOOGLE_SHEETS_SPREADSHEET_ID;
@@ -166,6 +187,24 @@ export async function updateRole(discordId, role) {
 		},
 	});
 	return true;
+}
+
+export async function batchUpdateRoles(updates) {
+	if (!Array.isArray(updates) || updates.length === 0) return { updated: 0 };
+	await ensureSheetSetup();
+	const spreadsheetId = GOOGLE_SHEETS_SPREADSHEET_ID;
+	const data = updates.map((u) => ({
+		range: `${SHEET_NAME}!D${u.rowNumber}:D${u.rowNumber}`,
+		values: [[u.role ?? '']],
+	}));
+	await sheetsApi.spreadsheets.values.batchUpdate({
+		spreadsheetId,
+		requestBody: {
+			valueInputOption: 'RAW',
+			data,
+		},
+	});
+	return { updated: updates.length };
 }
 
 

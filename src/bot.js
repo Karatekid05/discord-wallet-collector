@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { Client, GatewayIntentBits, REST, Routes, Partials, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, InteractionType, EmbedBuilder } from 'discord.js';
-import { upsertWallet, getWallet, ensureSheetSetup, listWallets, updateRole } from './sheets.js';
+import { upsertWallet, getWallet, ensureSheetSetup, listWalletsWithRow, batchUpdateRoles } from './sheets.js';
 
 const token = process.env.DISCORD_TOKEN;
 const clientId = process.env.DISCORD_CLIENT_ID;
@@ -128,22 +128,42 @@ client.on('interactionCreate', async (interaction) => {
 			}
 			if (interaction.commandName === 'refresh-wallet-roles') {
 				await interaction.deferReply({ ephemeral: true });
-				const items = await listWallets();
-				let updated = 0;
-				for (const item of items) {
-					if (!item.discordId) continue;
+				const items = await listWalletsWithRow();
+				await interaction.editReply(`Refreshing roles for ${items.length} user(s). I'll DM you when done.`);
+				(async () => {
+					const concurrencyLimit = 5;
+					const queue = [...items];
+					const computed = [];
+					const workers = Array.from({ length: concurrencyLimit }, async () => {
+						while (queue.length > 0) {
+							const item = queue.shift();
+							if (!item || !item.discordId) continue;
+							try {
+								const member = await interaction.guild?.members.fetch(item.discordId).catch(() => null);
+								const role = await getHighestPriorityRoleLabel({ guild: interaction.guild, user: { id: item.discordId }, member });
+								computed.push({ rowNumber: item.rowNumber, discordId: item.discordId, newRole: role || '' });
+							} catch {
+								computed.push({ rowNumber: item.rowNumber, discordId: item.discordId, newRole: '' });
+							}
+						}
+					});
+					await Promise.all(workers);
+					// Only write differences to reduce API calls
+					const diffs = computed
+						.map((c) => {
+							const existing = items.find((i) => i.rowNumber === c.rowNumber);
+							return existing && (existing.role || '') !== c.newRole ? { rowNumber: c.rowNumber, role: c.newRole } : null;
+						})
+						.filter(Boolean);
+					let updated = 0;
+					if (diffs.length > 0) {
+						const { updated: count } = await batchUpdateRoles(diffs);
+						updated = count;
+					}
 					try {
-						// Build a fake interaction-like object for role fetch using current interaction context
-						const role = await getHighestPriorityRoleLabel({
-							guild: interaction.guild,
-							user: { id: item.discordId },
-							member: await interaction.guild?.members.fetch(item.discordId).catch(() => null) || null,
-						});
-						await updateRole(item.discordId, role);
-						updated++;
+						await interaction.user.send(`Roles refreshed for ${updated} user(s).`);
 					} catch {}
-				}
-				await interaction.editReply(`Roles refreshed for ${updated} user(s).`);
+				})();
 			}
 		}
 
