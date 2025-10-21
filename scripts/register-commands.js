@@ -19,6 +19,10 @@ const commands = [
 		name: 'refresh-wallet-roles',
 		description: 'Refresh stored roles for submitted wallets',
 	},
+	{
+		name: 'fill-monad-airdrop-role',
+		description: 'Fill blank roles with Monad Airdrop if user has that role',
+	},
 ];
 
 const rest = new REST({ version: '10' }).setToken(token);

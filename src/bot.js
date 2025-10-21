@@ -82,6 +82,10 @@ async function registerCommands() {
 			name: 'refresh-wallet-roles',
 			description: 'Refresh stored roles for submitted wallets',
 		},
+		{
+			name: 'fill-monad-airdrop-role',
+			description: 'Fill blank roles with Monad Airdrop if user has that role',
+		},
 	];
 	const rest = new REST({ version: '10' }).setToken(token);
 	try {
@@ -162,6 +166,40 @@ client.on('interactionCreate', async (interaction) => {
 					}
 					try {
 						await interaction.user.send(`Roles refreshed for ${updated} user(s).`);
+					} catch {}
+				})();
+			}
+			if (interaction.commandName === 'fill-monad-airdrop-role') {
+				await interaction.deferReply({ ephemeral: true });
+				const ROLE_ID = '1427682447369437284';
+				const items = await listWalletsWithRow();
+				const targets = items.filter((i) => (i.role || '') === '');
+				await interaction.editReply(`Checking ${targets.length} user(s) with blank role. I'll DM you when done.`);
+				(async () => {
+					const concurrencyLimit = 5;
+					const queue = [...targets];
+					const updates = [];
+					const workers = Array.from({ length: concurrencyLimit }, async () => {
+						while (queue.length > 0) {
+							const item = queue.shift();
+							if (!item || !item.discordId) continue;
+							try {
+								const member = await interaction.guild?.members.fetch(item.discordId).catch(() => null);
+								const hasRole = !!member?.roles?.cache?.has(ROLE_ID);
+								if (hasRole) {
+									updates.push({ rowNumber: item.rowNumber, role: 'Monad Airdrop' });
+								}
+							} catch {}
+						}
+					});
+					await Promise.all(workers);
+					let updated = 0;
+					if (updates.length > 0) {
+						const { updated: count } = await batchUpdateRoles(updates);
+						updated = count;
+					}
+					try {
+						await interaction.user.send(`Monad Airdrop set for ${updated} user(s).`);
 					} catch {}
 				})();
 			}
