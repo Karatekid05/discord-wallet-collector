@@ -12,6 +12,8 @@ if (!token || !clientId) {
 
 // Role priority (highest to lowest)
 const PRIORITY_ROLES = [
+	{ id: '1338964285585621094', label: 'Admin' },
+	{ id: '1338993206112817283', label: 'Community Team' },
     { id: '1353403238241669132', label: 'Boss' },
     { id: '1353017567345901589', label: "Mongang's friends" },
     { id: '1399886358096379964', label: 'Alpha' },
@@ -20,6 +22,7 @@ const PRIORITY_ROLES = [
     { id: '1353402893532659732', label: 'Capo' },
     { id: '1353402683247165561', label: 'Fast Shooter' },
     { id: '1385211569872310324', label: 'Mongang Lover' },
+	{ id: '1427682447369437284', label: 'Monad Eligible' },
 ];
 
 async function getMemberRoleIds(interaction) {
