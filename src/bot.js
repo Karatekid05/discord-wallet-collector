@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { Client, GatewayIntentBits, REST, Routes, Partials, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, InteractionType, EmbedBuilder } from 'discord.js';
-import { upsertWallet, getWallet, ensureSheetSetup, listWalletsWithRow, batchUpdateRoles } from './sheets.js';
+import { upsertWallet, getWallet, ensureSheetSetup, listWalletsWithRow, batchUpdateRoles, batchDeleteRows } from './sheets.js';
 
 const token = process.env.DISCORD_TOKEN;
 const clientId = process.env.DISCORD_CLIENT_ID;
@@ -88,6 +88,10 @@ async function registerCommands() {
 		{
 			name: 'fill-monad-airdrop-role',
 			description: 'Fill blank roles with Monad Airdrop if user has that role',
+		},
+		{
+			name: 'prune-no-priority-roles',
+			description: 'Remove sheet entries for users without any priority role',
 		},
 	];
 	const rest = new REST({ version: '10' }).setToken(token);
@@ -203,6 +207,39 @@ client.on('interactionCreate', async (interaction) => {
 					}
 					try {
 						await interaction.user.send(`Monad Airdrop set for ${updated} user(s).`);
+					} catch {}
+				})();
+			}
+			if (interaction.commandName === 'prune-no-priority-roles') {
+				await interaction.deferReply({ ephemeral: true });
+				const items = await listWalletsWithRow();
+				await interaction.editReply(`Scanning ${items.length} user(s) to prune entries without priority roles. I'll DM you when done.`);
+				(async () => {
+					const concurrencyLimit = 5;
+					const queue = [...items];
+					const toDelete = [];
+					const workers = Array.from({ length: concurrencyLimit }, async () => {
+						while (queue.length > 0) {
+							const item = queue.shift();
+							if (!item || !item.discordId) continue;
+							try {
+								const member = await interaction.guild?.members.fetch(item.discordId).catch(() => null);
+								const roleIds = new Set(member?.roles?.cache?.map((r) => r.id) || []);
+								const hasAnyPriority = PRIORITY_ROLES.some((r) => roleIds.has(r.id));
+								if (!hasAnyPriority) {
+									toDelete.push(item.rowNumber);
+								}
+							} catch {}
+						}
+					});
+					await Promise.all(workers);
+					let deleted = 0;
+					if (toDelete.length > 0) {
+						const { deleted: count } = await batchDeleteRows(toDelete);
+						deleted = count;
+					}
+					try {
+						await interaction.user.send(`Pruned ${deleted} entrie(s) with no priority roles.`);
 					} catch {}
 				})();
 			}

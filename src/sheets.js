@@ -227,4 +227,26 @@ export async function batchUpdateRoles(updates) {
 	return { updated: updates.length };
 }
 
+export async function batchDeleteRows(rowNumbers) {
+	await ensureSheetSetup();
+	const spreadsheetId = GOOGLE_SHEETS_SPREADSHEET_ID;
+	const sorted = Array.from(new Set(rowNumbers.filter((n) => Number.isInteger(n) && n >= 2))).sort((a,b) => b - a);
+	if (sorted.length === 0) return { deleted: 0 };
+	const requests = sorted.map((rowNumber) => ({
+		deleteDimension: {
+			range: {
+				sheetId: undefined,
+				dimension: 'ROWS',
+				startIndex: rowNumber - 1, // 0-based
+				endIndex: rowNumber,      // exclusive
+			},
+		},
+	}));
+	await callWithRetry(() => sheetsApi.spreadsheets.batchUpdate({
+		spreadsheetId,
+		requestBody: { requests },
+	}), 'spreadsheets.batchUpdate deleteRows');
+	return { deleted: sorted.length };
+}
+
 

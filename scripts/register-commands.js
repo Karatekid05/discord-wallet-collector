@@ -23,6 +23,10 @@ const commands = [
 		name: 'fill-monad-airdrop-role',
 		description: 'Fill blank roles with Monad Airdrop if user has that role',
 	},
+	{
+		name: 'prune-no-priority-roles',
+		description: 'Remove sheet entries for users without any priority role',
+	},
 ];
 
 const rest = new REST({ version: '10' }).setToken(token);
