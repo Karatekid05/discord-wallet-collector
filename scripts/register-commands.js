@@ -27,6 +27,18 @@ const commands = [
 		name: 'prune-no-priority-roles',
 		description: 'Remove sheet entries for users without any priority role',
 	},
+	{
+		name: 'debug-user-roles',
+		description: 'List all roles of a user (for finding role IDs)',
+		options: [
+			{
+				name: 'user',
+				description: 'The user to check',
+				type: 6, // USER type
+				required: true,
+			},
+		],
+	},
 ];
 
 const rest = new REST({ version: '10' }).setToken(token);

@@ -13,16 +13,20 @@ if (!token || !clientId) {
 // Role priority (highest to lowest)
 const PRIORITY_ROLES = [
 	{ id: '1338964285585621094', label: 'Admin' },
-	{ id: '1338993206112817283', label: 'Community Team' },
-    { id: '1353403238241669132', label: 'Boss' },
-    { id: '1353017567345901589', label: "Mongang's friends" },
-    { id: '1399886358096379964', label: 'Alpha' },
-    { id: '1416902471124652204', label: 'Free Mint Pass' },
-    { id: '1353403039200972830', label: 'Mafia' },
-    { id: '1353402893532659732', label: 'Capo' },
-    { id: '1353402683247165561', label: 'Fast Shooter' },
-    { id: '1385211569872310324', label: 'Mongang Lover' },
+	// TODO: Find ID for 'Mongang Team'
+	{ id: '1338993206112817283', label: 'Community' }, // Previously 'Community Team'
+	// TODO: Find ID for 'Alpha Boss'
+	{ id: '1353403238241669132', label: 'Boss' },
+	{ id: '1353017567345901589', label: "Mongang's friends" },
+	{ id: '1399886358096379964', label: 'Alpha' },
+	{ id: '1416902471124652204', label: 'Free Mint' }, // Previously 'Free Mint Pass'
+	{ id: '1353403039200972830', label: 'Mafia' },
+	{ id: '1353402893532659732', label: 'Capo' },
+	// TODO: Find ID for 'Collab' (previously had: 1413980753053745263)
 	{ id: '1427682447369437284', label: 'Monad Eligible' },
+	{ id: '1353402683247165561', label: 'Fast Shooter' },
+	{ id: '1385211569872310324', label: 'Mongang Lover' },
+	// TODO: Find ID for 'Mad Gang'
 ];
 
 async function getMemberRoleIds(interaction) {
@@ -92,6 +96,18 @@ async function registerCommands() {
 		{
 			name: 'prune-no-priority-roles',
 			description: 'Remove sheet entries for users without any priority role',
+		},
+		{
+			name: 'debug-user-roles',
+			description: 'List all roles of a user (for finding role IDs)',
+			options: [
+				{
+					name: 'user',
+					description: 'The user to check',
+					type: 6, // USER type
+					required: true,
+				},
+			],
 		},
 	];
 	const rest = new REST({ version: '10' }).setToken(token);
@@ -242,6 +258,33 @@ client.on('interactionCreate', async (interaction) => {
 						await interaction.user.send(`Pruned ${deleted} entrie(s) with no priority roles.`);
 					} catch {}
 				})();
+			}
+			if (interaction.commandName === 'debug-user-roles') {
+				await interaction.deferReply({ ephemeral: true });
+				const targetUser = interaction.options.getUser('user');
+				if (!targetUser) {
+					await interaction.editReply('User not found.');
+					return;
+				}
+				try {
+					const member = await interaction.guild?.members.fetch(targetUser.id);
+					if (!member) {
+						await interaction.editReply('User is not in this server.');
+						return;
+					}
+					const roles = member.roles.cache
+						.filter((r) => r.id !== interaction.guild.id) // Exclude @everyone
+						.map((r) => `**${r.name}**: \`${r.id}\``)
+						.sort()
+						.join('\n') || 'No roles';
+					const embed = new EmbedBuilder()
+						.setTitle(`Roles for ${targetUser.tag}`)
+						.setDescription(roles)
+						.setColor(0x5865f2);
+					await interaction.editReply({ embeds: [embed] });
+				} catch (err) {
+					await interaction.editReply(`Error: ${err.message}`);
+				}
 			}
 		}
 
