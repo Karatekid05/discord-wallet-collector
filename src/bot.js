@@ -13,19 +13,19 @@ if (!token || !clientId) {
 // Role priority (highest to lowest)
 const PRIORITY_ROLES = [
 	{ id: '1338964285585621094', label: 'Admin' },
-	// TODO: Find ID for 'Mongang Team'
+	{ id: '1339293248308641883', label: 'Mongang Team' },
 	{ id: '1338993206112817283', label: 'Community Team' },
-	// TODO: Find ID for 'Alpha Boss'
-	{ id: '1353403238241669132', label: 'Boss' },
-	{ id: '1353017567345901589', label: "Mongang's friends" },
+	{ id: '1379870976212467772', label: 'Alpha Boss' },
+	{ id: '1353403238241669132', label: 'BOSS 💎' },
+	{ id: '1353017567345901589', label: 'Mongang friends' },
 	{ id: '1399886358096379964', label: 'Alpha' },
-	{ id: '1416902471124652204', label: 'Free Mint' },
-	{ id: '1353403039200972830', label: 'Mafia' },
-	{ id: '1353402893532659732', label: 'Capo' },
-	{ id: '1427682447369437284', label: 'Monad Eligible' },
-	{ id: '1353402683247165561', label: 'Fast Shooter' },
-	{ id: '1385211569872310324', label: 'Mongang Lover' },
-	// TODO: Find ID for 'Mad Gang'
+	{ id: '1416902471124652204', label: 'Free Mint Pass' },
+	{ id: '1353403039200972830', label: 'Mafia 💣' },
+	{ id: '1353402893532659732', label: 'Capo 🧨' },
+	{ id: '1427682447369437284', label: 'Monad eligible' },
+	{ id: '1353402683247165561', label: 'Fast Shooter 🔫' },
+	{ id: '1353141685504315465', label: 'MONGANG' },
+	{ id: '1395161421507072033', label: 'Mad Gang' },
 ];
 
 async function getMemberRoleIds(interaction) {
