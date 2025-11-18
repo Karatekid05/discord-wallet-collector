@@ -25,6 +25,7 @@ const PRIORITY_ROLES = [
     { id: '1395161421507072033', label: 'Mad Gang' },
 	{ id: '1427682447369437284', label: 'Monad eligible' },
 	{ id: '1353402683247165561', label: 'Fast Shooter 🔫' },
+	{ id: '1385211569872310324', label: 'Mongang Lover' },
 	{ id: '1353141685504315465', label: 'MONGANG' },
 ];
 
