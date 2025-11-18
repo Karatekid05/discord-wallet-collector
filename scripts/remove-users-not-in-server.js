@@ -21,8 +21,12 @@ client.once('ready', async () => {
 		console.log(`Connected to guild: ${guild.name}`);
 		
 		console.log('Fetching users from Google Sheets (this may take a moment)...');
+		// Wait a bit before first attempt to let network stabilize
+		await new Promise((r) => setTimeout(r, 2000));
+		
 		let items;
-		let retries = 3;
+		let retries = 5;
+		let delay = 5000;
 		while (retries > 0) {
 			try {
 				items = await listWalletsWithRow();
@@ -30,10 +34,13 @@ client.once('ready', async () => {
 			} catch (err) {
 				retries--;
 				if (retries === 0) {
+					console.error(`\nFailed to fetch from Sheets after all retries.`);
+					console.error(`Error: ${err.code || err.message}`);
 					throw err;
 				}
-				console.log(`Sheets API timeout, retrying... (${retries} attempts left)`);
-				await new Promise((r) => setTimeout(r, 5000));
+				console.log(`Sheets API timeout, waiting ${delay/1000}s before retry... (${retries} attempts left)`);
+				await new Promise((r) => setTimeout(r, delay));
+				delay = Math.min(delay * 1.5, 30000); // Increase delay, max 30s
 			}
 		}
 		
@@ -69,8 +76,12 @@ client.once('ready', async () => {
 		
 		if (toDelete.length > 0) {
 			console.log(`\nDeleting ${toDelete.length} row(s)...`);
+			// Wait a bit before delete attempt
+			await new Promise((r) => setTimeout(r, 2000));
+			
 			let deleted = 0;
-			let retries = 3;
+			let retries = 5;
+			let delay = 5000;
 			while (retries > 0) {
 				try {
 					const result = await batchDeleteRows(toDelete);
@@ -79,11 +90,13 @@ client.once('ready', async () => {
 				} catch (err) {
 					retries--;
 					if (retries === 0) {
-						console.error(`Failed to delete after retries: ${err.message}`);
+						console.error(`\nFailed to delete after all retries.`);
+						console.error(`Error: ${err.code || err.message}`);
 						throw err;
 					}
-					console.log(`Delete timeout, retrying... (${retries} attempts left)`);
-					await new Promise((r) => setTimeout(r, 5000));
+					console.log(`Delete timeout, waiting ${delay/1000}s before retry... (${retries} attempts left)`);
+					await new Promise((r) => setTimeout(r, delay));
+					delay = Math.min(delay * 1.5, 30000); // Increase delay, max 30s
 				}
 			}
 			console.log(`✓ Deleted ${deleted} row(s) from sheet\n`);
