@@ -230,23 +230,40 @@ export async function batchUpdateRoles(updates) {
 export async function batchDeleteRows(rowNumbers) {
 	await ensureSheetSetup();
 	const spreadsheetId = GOOGLE_SHEETS_SPREADSHEET_ID;
+	
+	// Get the sheet ID for "Wallets"
+	const spreadsheet = await callWithRetry(() => sheetsApi.spreadsheets.get({ spreadsheetId }), 'spreadsheets.get for sheetId');
+	const sheet = spreadsheet.data.sheets?.find((s) => s.properties?.title === SHEET_NAME);
+	if (!sheet || !sheet.properties?.sheetId) {
+		throw new Error(`Sheet "${SHEET_NAME}" not found`);
+	}
+	const sheetId = sheet.properties.sheetId;
+	
 	const sorted = Array.from(new Set(rowNumbers.filter((n) => Number.isInteger(n) && n >= 2))).sort((a,b) => b - a);
 	if (sorted.length === 0) return { deleted: 0 };
-	const requests = sorted.map((rowNumber) => ({
-		deleteDimension: {
-			range: {
-				sheetId: undefined,
-				dimension: 'ROWS',
-				startIndex: rowNumber - 1, // 0-based
-				endIndex: rowNumber,      // exclusive
+	
+	// Process in batches of 50 to avoid API limits
+	const batchSize = 50;
+	let totalDeleted = 0;
+	for (let i = 0; i < sorted.length; i += batchSize) {
+		const batch = sorted.slice(i, i + batchSize);
+		const requests = batch.map((rowNumber) => ({
+			deleteDimension: {
+				range: {
+					sheetId: sheetId,
+					dimension: 'ROWS',
+					startIndex: rowNumber - 1, // 0-based
+					endIndex: rowNumber,      // exclusive
+				},
 			},
-		},
-	}));
-	await callWithRetry(() => sheetsApi.spreadsheets.batchUpdate({
-		spreadsheetId,
-		requestBody: { requests },
-	}), 'spreadsheets.batchUpdate deleteRows');
-	return { deleted: sorted.length };
+		}));
+		await callWithRetry(() => sheetsApi.spreadsheets.batchUpdate({
+			spreadsheetId,
+			requestBody: { requests },
+		}), 'spreadsheets.batchUpdate deleteRows');
+		totalDeleted += batch.length;
+	}
+	return { deleted: totalDeleted };
 }
 
 
