@@ -71,11 +71,19 @@ client.once('ready', async () => {
 					const roleIds = new Set(member.roles.cache.map((r) => r.id));
 					const highestRole = getHighestPriorityRole(roleIds);
 					
+					// Get all roles (excluding @everyone) for users without priority
+					const allRoles = member.roles.cache
+						.filter((r) => r.id !== guild.id)
+						.map((r) => r.name)
+						.sort()
+						.join(', ') || 'None';
+					
 					results.push({
 						discordId: item.discordId,
 						discordUsername: item.discordUsername,
 						highestRole: highestRole || 'No priority role',
 						hasAnyPriority: !!highestRole,
+						allRoles: allRoles,
 					});
 				} catch (err) {
 					results.push({
@@ -120,12 +128,25 @@ client.once('ready', async () => {
 		});
 		
 		// Summary
-		console.log('\n\n=== Summary ===');
+		// Show all roles for users without priority
+		const noPriorityUsers = results.filter((r) => !r.hasAnyPriority && r.highestRole !== 'User not in server');
+		if (noPriorityUsers.length > 0) {
+			console.log('\n\n=== Users with No Priority Role - All Their Roles ===\n');
+			noPriorityUsers.forEach((u) => {
+				console.log(`${u.discordUsername} (${u.discordId}):`);
+				console.log(`  Roles: ${u.allRoles}`);
+				console.log('');
+			});
+		}
+		
+		console.log('\n=== Summary ===');
 		console.log(`Total users with blank role: ${blankRoleUsers.length}`);
 		const withPriority = results.filter((r) => r.hasAnyPriority).length;
-		const withoutPriority = results.filter((r) => !r.hasAnyPriority).length;
+		const withoutPriority = results.filter((r) => !r.hasAnyPriority && r.highestRole !== 'User not in server').length;
+		const notInServer = results.filter((r) => r.highestRole === 'User not in server').length;
 		console.log(`Users with priority role: ${withPriority}`);
 		console.log(`Users without priority role: ${withoutPriority}`);
+		console.log(`Users not in server: ${notInServer}`);
 		
 		// Count by each priority role
 		console.log('\n=== Breakdown by Priority Role ===');

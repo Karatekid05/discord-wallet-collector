@@ -19,8 +19,28 @@ const client = new Client({
 
 client.once('ready', async () => {
 	try {
+		console.log('Connecting to Discord guild...');
 		const guild = await client.guilds.fetch(guildId);
-		const items = await listWalletsWithRow();
+		console.log(`Connected to guild: ${guild.name}`);
+		
+		console.log('Fetching users from Google Sheets (this may take a moment)...');
+		let items;
+		let retries = 3;
+		while (retries > 0) {
+			try {
+				items = await listWalletsWithRow();
+				break;
+			} catch (err) {
+				retries--;
+				if (retries === 0) {
+					throw err;
+				}
+				console.log(`Sheets API timeout, retrying... (${retries} attempts left)`);
+				await new Promise((r) => setTimeout(r, 5000));
+			}
+		}
+		
+		console.log(`Fetched ${items.length} users from sheet`);
 		
 		// Filter users with blank role
 		const blankRoleUsers = items.filter((item) => !item.role || item.role.trim() === '');
@@ -61,7 +81,23 @@ client.once('ready', async () => {
 		
 		if (updates.length > 0) {
 			console.log(`\nUpdating ${updates.length} row(s) with "${ROLE_LABEL}"...`);
-			const { updated } = await batchUpdateRoles(updates);
+			let updated = 0;
+			let retries = 3;
+			while (retries > 0) {
+				try {
+					const result = await batchUpdateRoles(updates);
+					updated = result.updated;
+					break;
+				} catch (err) {
+					retries--;
+					if (retries === 0) {
+						console.error(`Failed to update after retries: ${err.message}`);
+						throw err;
+					}
+					console.log(`Update timeout, retrying... (${retries} attempts left)`);
+					await new Promise((r) => setTimeout(r, 5000));
+				}
+			}
 			console.log(`✓ Updated ${updated} row(s) in sheet\n`);
 		} else {
 			console.log('No users to update.\n');
