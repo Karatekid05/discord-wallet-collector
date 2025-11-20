@@ -27,6 +27,9 @@ const PRIORITY_ROLES = [
 	{ id: '1385211569872310324', label: 'Mongang Lover' },
 	{ id: '1353141685504315465', label: 'MONGANG' },
 	{ id: '1395161421507072033', label: 'Mad Gang' },
+	{ id: '1441026531479781508', label: 'SOM OG' },
+	{ id: '1440822890697199658', label: 'CULT DC' },
+	{ id: '1440388757588152330', label: 'Cult Relic Holder' },
 ];
 
 async function getMemberRoleIds(interaction) {
